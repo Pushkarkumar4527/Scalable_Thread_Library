@@ -1,41 +1,43 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <atomic>
 #include "ThreadPool.h"
 
-// A dummy task that simulates hard work
-int complex_calculation(int a, int b) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Simulate delay
-    return a * b;
+// Task: Simulates work for 500ms
+void heavy_task(int id) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 
 int main() {
-    // 1. Initialize Pool with 4 Workers (Scalable to Hardware)
-    // You can use std::thread::hardware_concurrency() to detect your CPU cores
+    // 1. Setup
     int cores = std::thread::hardware_concurrency();
-    std::cout << "Detected " << cores << " cores. Creating Thread Pool..." << std::endl;
+    std::cout << "Scalable Thread Pool | Hardware Cores: " << cores << std::endl;
+    std::cout << "------------------------------------------------" << std::endl;
     
     ThreadPool pool(cores);
-
-    // 2. Submit 100 tasks (Simulating High Concurrency)
-    std::vector<std::future<int>> results;
     
-    std::cout << "Submitting 100 tasks..." << std::endl;
-    for(int i = 0; i < 100; ++i) {
-        results.emplace_back(
-            pool.submit(complex_calculation, i, i)
-        );
+    // 2. Submit many tasks (200 tasks)
+    int total_tasks = 200;
+    for(int i = 0; i < total_tasks; ++i) {
+        pool.submit(heavy_task, i);
     }
 
-    // 3. Get results
-    for(auto && result : results) {
-        // .get() waits for the thread to finish and returns the value
-        // This proves the "Future" mechanism works
-        // std::cout << "Result: " << result.get() << std::endl; 
-        result.get(); // Just waiting for completion
+    // 3. Monitoring Loop (The Dashboard)
+    // While there are tasks in the queue, print status
+    while(true) {
+        size_t pending = pool.get_tasks_queued();
+        
+        std::cout << "\r[Status] Workers: " << pool.get_workers_count() 
+                  << " | Pending Tasks: " << pending << "   " << std::flush;
+        
+        if(pending == 0) break;
+        
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
-    std::cout << "All 100 tasks completed successfully by the pool!" << std::endl;
+    std::cout << "\n------------------------------------------------" << std::endl;
+    std::cout << "All tasks processed." << std::endl;
 
     return 0;
 }
