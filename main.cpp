@@ -1,75 +1,57 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
-#include <cmath>
-#include <iomanip>
+#include <fstream> // Added for file handling
+#include <thread>
 #include "ThreadPool.h"
 
-// --- ANSI COLOR CODES FOR VISUALS ---
+// --- ANSI COLOR CODES ---
 const std::string RESET = "\033[0m";
-const std::string RED = "\033[31m";
 const std::string GREEN = "\033[32m";
-const std::string YELLOW = "\033[33m";
 const std::string CYAN = "\033[36m";
 const std::string BOLD = "\033[1m";
 
-// Helper to draw a progress bar
-void draw_progress_bar(int total, int pending, int active_workers) {
-    int completed = total - pending;
-    float percentage = (float)completed / total;
-    int bar_width = 40;
-    int filled_width = (int)(bar_width * percentage);
-
-    // Calculate clear screen codes to keep dashboard static
-    std::cout << "\033[H\033[J"; // ANSI code to clear screen and move cursor to top
-
-    std::cout << BOLD << CYAN << "==========================================" << RESET << std::endl;
-    std::cout << BOLD << "   SCALABLE THREAD POOL MONITORING SYSTEM   " << RESET << std::endl;
-    std::cout << BOLD << CYAN << "==========================================" << RESET << std::endl << std::endl;
-
-    std::cout << "Hardware Cores: " << std::thread::hardware_concurrency() << std::endl;
-    std::cout << "Active Workers: " << ((pending > 0) ? GREEN : YELLOW) << active_workers << RESET << std::endl;
-    std::cout << "Total Tasks   : " << total << std::endl;
-    std::cout << "Tasks Pending : " << ((pending > 50) ? RED : RESET) << pending << RESET << std::endl;
-    
-    std::cout << std::endl << "Progress: " << (int)(percentage * 100) << "%" << std::endl;
-    
-    // Draw the bar
-    std::cout << "[";
-    for (int i = 0; i < bar_width; ++i) {
-        if (i < filled_width) std::cout << GREEN << "#" << RESET;
-        else std::cout << ".";
-    }
-    std::cout << "]" << std::endl;
-}
-
-// Simulates a heavy task
 void heavy_task(int id) {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 int main() {
+    // 1. Setup Logging
+    std::ofstream logFile("performance_log.csv");
+    logFile << "Time_ms,Pending_Tasks,Active_Workers\n"; // CSV Header
+
     int cores = std::thread::hardware_concurrency();
     ThreadPool pool(cores);
-    
     int total_tasks = 500;
     
-    // Submit tasks
     for(int i = 0; i < total_tasks; ++i) {
         pool.submit(heavy_task, i);
     }
 
-    // Monitoring Loop (Refreshes every 100ms)
+    // 2. Monitoring Loop
+    auto start_time = std::chrono::high_resolution_clock::now();
+    
     while(true) {
         size_t pending = pool.get_tasks_queued();
         size_t workers = pool.get_workers_count();
         
-        draw_progress_bar(total_tasks, pending, workers);
+        // Calculate elapsed time
+        auto now = std::chrono::high_resolution_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
 
+        // Write to File
+        logFile << elapsed << "," << pending << "," << workers << "\n";
+
+        // Visual Dashboard
+        std::cout << "\033[H\033[J"; // Clear screen
+        std::cout << BOLD << CYAN << "=== THREAD POOL MONITOR ===" << RESET << std::endl;
+        std::cout << "Time: " << elapsed << "ms | Pending: " << pending << std::endl;
+        
         if(pending == 0) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
-    std::cout << std::endl << BOLD << GREEN << "✔ ALL TASKS COMPLETED SUCCESSFULLY." << RESET << std::endl;
+    
+    logFile.close();
+    std::cout << "\n" << GREEN << "Done! Log saved to 'performance_log.csv'" << RESET << std::endl;
     return 0;
 }
