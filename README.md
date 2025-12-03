@@ -23,7 +23,7 @@ The project is divided into 3 core modules:
 
 1.  **Compile:**
     ```bash
-    g++ -std=c++17 -pthread main.cpp -o main
+    g++ -std=c++17 main.cpp -o main
     ```
 2.  **Run:**
     ```bash
@@ -35,6 +35,10 @@ The project is divided into 3 core modules:
 * [x] Module 2 Completed (Worker Engine)
 * [x] Module 3 Completed (Monitoring)
 * [x] Final Integration Testing Completed
+
+## Future Enhancements
+* **Priority Scheduling:** Implementing a priority queue to handle critical tasks first.
+* **Work Stealing:** Allowing idle threads to steal tasks from busy ones.
 
 # Authors  
 | NAME | REG. NO. |
