@@ -59,6 +59,15 @@ public:
         }
     }
 
+    // NEW FEATURE: Monitoring Interface (Module 3)
+    size_t get_tasks_queued() {
+        return task_queue.size();
+    }
+
+    size_t get_workers_count() {
+        return workers.size();
+    }
+
     // Destructor: Joins all threads
     ~ThreadPool() {
         shutdown();
