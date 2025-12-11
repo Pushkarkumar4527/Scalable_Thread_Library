@@ -17,14 +17,17 @@ auto g_start_time = std::chrono::steady_clock::now();
 
 // Simulated heavy task with VARIABLE speed
 void heavy_task(int id) {
-    // We use the atomic g_task_delay to control speed dynamically
     std::this_thread::sleep_for(std::chrono::milliseconds(g_task_delay.load()));
     g_completed++; 
 }
 
 int main() {
-    // 1. Setup
+    // 1. Setup - FIX FOR 0 WORKERS
     int cores = std::thread::hardware_concurrency();
+    if (cores == 0) {
+        cores = 4; // Fallback to 4 threads if hardware detection fails
+    }
+    
     ThreadPool pool(cores);
     int total_tasks = 5000; 
     g_total = total_tasks;
@@ -39,7 +42,7 @@ int main() {
                 <!DOCTYPE html>
                 <html>
                 <head>
-                    <title>NEXUS // Thread Command</title>
+                    <meta charset="UTF-8"> <title>NEXUS // Thread Command</title>
                     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
                     <style>
@@ -139,7 +142,7 @@ int main() {
 
                     <header>
                         <div>
-                            <h1>Thread Manager</h1>
+                            <h1>NEXUS // CORE</h1>
                             <div style="font-size: 0.8rem; color: #666; letter-spacing: 3px;">THREAD POOL ORCHESTRATOR</div>
                         </div>
                         <div class="status"><div class="blink"></div> SYSTEM ONLINE</div>
@@ -362,17 +365,14 @@ int main() {
     }
 
     // 4. Monitoring Loop
-   // 4. Monitoring Loop
     while(true) {
         g_pending = pool.get_tasks_queued();
-        
-        // Check if queue is empty AND the initial load is finished
+        g_workers = pool.get_workers_count();
         if(g_pending == 0 && g_total > 0) {
              std::cout << "\n[NEXUS] ALL TASKS COMPLETE. SYSTEM SHUTDOWN IN 3 SECONDS..." << std::endl;
              std::this_thread::sleep_for(std::chrono::seconds(3));
              break;
         }
-        
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
